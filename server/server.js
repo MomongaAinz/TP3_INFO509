@@ -10,7 +10,7 @@ const port = 3000;
 
 // URL MongoDB et base de données
 const mongoUrl = 'mongodb://localhost:27017'; 
-const dbName = 'tp2';
+const dbName = 'td5';
 
 app.use(express.json());
 
@@ -18,11 +18,15 @@ app.use(express.json());
 ////API
 
 // WWW:
-app.use(express.static(path.join(__dirname, 'WWW')));
+app.use(express.static(path.join(__dirname, '../client')));
 
 // Route par défaut pour renvoyer index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'WWW', 'index.html'));
+    res.sendFile(path.join(__dirname, '../client', 'index.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname,'../client', 'dashboard.html'));
 });
 
 
@@ -158,7 +162,6 @@ app.get('/order/:orderID', async (req, res) => {
     }
 });
 
-// Route pour rechercher la liste des commandes d'un customer triée par date
 app.get('/customer_order/:customerID', async (req, res) => {
     const customerID = req.params.customerID;
 
@@ -171,13 +174,77 @@ app.get('/customer_order/:customerID', async (req, res) => {
         const db = client.db(dbName);
         const orders = await db.collection('orders').aggregate([
             {
-                $match: { CustomerID: customerID } 
+                $match: { CustomerID: customerID }  // Filtre pour le client
             },
             {
-                $sort: { OrderDate: 1 } 
+                $group: {  // Regroupe les commandes par OrderID
+                    _id: "$OrderID",
+                    CustomerID: { $first: "$CustomerID" },
+                    EmployeeID: { $first: "$EmployeeID" },
+                    OrderDate: { $first: "$OrderDate" },
+                    RequiredDate: { $first: "$RequiredDate" },
+                    ShippedDate: { $first: "$ShippedDate" },
+                    ShipVia: { $first: "$ShipVia" },
+                    Freight: { $first: "$Freight" },
+                    ShipName: { $first: "$ShipName" },
+                    ShipAddress: { $first: "$ShipAddress" },
+                    ShipCity: { $first: "$ShipCity" },
+                    ShipRegion: { $first: "$ShipRegion" },
+                    ShipPostalCode: { $first: "$ShipPostalCode" },
+                    ShipCountry: { $first: "$ShipCountry" },
+                    Products: {  // Regroupe les produits pour chaque OrderID
+                        $push: {
+                            ProductID: "$ProductID",
+                            UnitPrice: "$UnitPrice",
+                            Quantity: "$Quantity",
+                            Discount: "$Discount"
+                        }
+                    }
+                }
+            },
+            {
+                $project: {  // Calcule le prix total de la commande (OrderPrice)
+                    CustomerID: 1,
+                    EmployeeID: 1,
+                    OrderDate: 1,
+                    RequiredDate: 1,
+                    ShippedDate: 1,
+                    ShipVia: 1,
+                    Freight: 1,
+                    ShipName: 1,
+                    ShipAddress: 1,
+                    ShipCity: 1,
+                    ShipRegion: 1,
+                    ShipPostalCode: 1,
+                    ShipCountry: 1,
+                    Products: 1,
+                    OrderPrice: {  // Calcule le prix total de la commande
+                        $round: [
+                            {  // Effectue le calcul du prix
+                                $sum: {
+                                    $map: {
+                                        input: "$Products",
+                                        as: "product",
+                                        in: {
+                                            $multiply: [
+                                                { $subtract: [1, "$$product.Discount"] }, // Applique la remise
+                                                "$$product.UnitPrice",
+                                                "$$product.Quantity"
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            2  // Arrondi à 2 décimales
+                        ]
+                    }
+                }
+            },
+            {
+                $sort: { OrderDate: 1 }  // Trie les commandes par date
             }
         ]).toArray();
-       
+
         if (orders.length > 0) {
             res.json(orders);
         } else {
@@ -192,6 +259,7 @@ app.get('/customer_order/:customerID', async (req, res) => {
         }
     }
 });
+
 
 // Route pour rechercher la liste des produits d'un supplier triée par nom
 app.get('/supplier_product/:supplierID', async (req, res) => {

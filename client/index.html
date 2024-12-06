@@ -4,45 +4,245 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://unpkg.com/vue@2.5.13/dist/vue.min.js"></script>
-  <title>Fetch Product</title>
+  <title>Product, Supplier, and Order Manager</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+
+    button {
+      padding: 5px 10px;
+      margin: 5px 0;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .order-details {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+    }
+
+    .error-message {
+      color: red;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
 
-	<img width="250px" src="node-mongo.png">
-  <h1>Product</h1>
-  <button id="fetch">Fetch Product 11</button>
+  <div id="app">
+    <h1>Product, Supplier, and Order Manager</h1>
+
+    <!-- Section de recherche des produits -->
+    <div class="section">
+      <h2>Search Product by ID</h2>
+      <input v-model="productID" type="text" placeholder="Enter Product ID">
+      <button @click="fetchProduct">Fetch Product</button>
+
+      <div v-if="product">
+        <h3>Product Details</h3>
+        <p><strong>Product ID:</strong> {{ product.productID }}</p>
+        <p><strong>Name:</strong> {{ product.productName }}</p>
+        <p><strong>Price:</strong> ${{ product.unitPrice }}</p>
+      </div>
+
+      <!-- Affichage du message d'erreur si la recherche échoue -->
+      <div v-if="errorProduct" class="error-message">
+        <p>{{ errorProduct }}</p>
+      </div>
+    </div>
+
+    <!-- Section de recherche des fournisseurs -->
+    <div class="section">
+      <h2>Search Supplier by ID</h2>
+      <input v-model="supplierID" type="text" placeholder="Enter Supplier ID">
+      <button @click="fetchSupplier">Fetch Supplier</button>
+
+      <div v-if="supplier">
+        <h3>Supplier Details</h3>
+        <p><strong>Supplier ID:</strong> {{ supplier.SupplierID }}</p>
+        <p><strong>Company Name:</strong> {{ supplier.CompanyName }}</p>
+        <p><strong>Contact Name:</strong> {{ supplier.ContactName }}</p>
+      </div>
+
+      <!-- Affichage du message d'erreur si la recherche échoue -->
+      <div v-if="errorSupplier" class="error-message">
+        <p>{{ errorSupplier }}</p>
+      </div>
+    </div>
+
+    <!-- Section de recherche des produits d'un fournisseur -->
+    <div class="section">
+      <h2>Search Products by Supplier ID</h2>
+      <input v-model="supplierIDForProducts" type="text" placeholder="Enter Supplier ID">
+      <button @click="fetchProductsBySupplier">Fetch Products</button>
+
+      <table v-if="productsBySupplier.length > 0">
+        <thead>
+          <tr>
+            <th>Product ID</th>
+            <th>Product Name</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="product in productsBySupplier" :key="product.productID">
+            <td>{{ product.productID }}</td>
+            <td>{{ product.productName }}</td>
+            <td>{{ product.unitPrice }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Affichage du message d'erreur si la recherche échoue -->
+      <div v-if="errorProductsBySupplier" class="error-message">
+        <p>{{ errorProductsBySupplier }}</p>
+      </div>
+    </div>
+
+    <!-- Section de recherche des commandes d'un client -->
+    <div class="section">
+      <h2>Search Customer Orders</h2>
+      <input v-model="customerID" type="text" placeholder="Enter Customer ID">
+      <button @click="fetchCustomerOrders">Fetch Orders</button>
+
+      <table v-if="customerOrders.length > 0">
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Order Date</th>
+            <th>Order Price</th>
+            
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="order in customerOrders" :key="order.OrderID">
+            <td>{{ order._id }}</td>
+            <td>{{ order.OrderDate }}</td>
+            <td>{{ order.OrderPrice }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Affichage du message d'erreur si la recherche échoue -->
+      <div v-if="errorCustomerOrders" class="error-message">
+        <p>{{ errorCustomerOrders }}</p>
+      </div>
+
+  
+  </div>
 
   <script>
-    document.getElementById('fetch').addEventListener('click', async () => {
-      try {
-        const response = await fetch('http://localhost:3000/product/11');
-        
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
+    new Vue({
+      el: '#app',
+      data: {
+        productID: '',
+        product: null,
+        errorProduct: '', // Message d'erreur pour les produits
+        supplierID: '',
+        supplier: null,
+        errorSupplier: '', // Message d'erreur pour les fournisseurs
+        customerID: '',
+        customerOrders: [],
+        errorCustomerOrders: '', // Message d'erreur pour les commandes des clients
+        selectedOrder: null,
+        supplierIDForProducts: '',
+        productsBySupplier: [],
+        errorProductsBySupplier: '', // Message d'erreur pour les produits du fournisseur
+      },
+      methods: {
+        async fetchProduct() {
+          try {
+            const response = await fetch(`http://localhost:3000/product/${this.productID}`);
+            if (!response.ok) throw new Error('Product not found');
+            this.product = await response.json();
+            this.errorProduct = ''; // Réinitialiser le message d'erreur si produit trouvé
+          } catch (err) {
+            console.error('Error fetching product:', err);
+            this.product = null;
+            this.errorProduct = 'Product not found'; // Message d'erreur si produit non trouvé
+          }
+        },
+        async fetchSupplier() {
+          try {
+            const supplierIDInt = parseInt(this.supplierID);  // Assurez-vous que l'ID est un entier
+            const response = await fetch(`http://localhost:3000/supplier/${supplierIDInt}`);
+            if (!response.ok) throw new Error('Supplier not found');
+            this.supplier = await response.json();
+            this.errorSupplier = ''; // Réinitialiser le message d'erreur si fournisseur trouvé
+          } catch (err) {
+            console.error('Error fetching supplier:', err);
+            this.supplier = null;
+            this.errorSupplier = 'Supplier not found'; // Message d'erreur si fournisseur non trouvé
+          }
+        },
+        async fetchProductsBySupplier() {
+          try {
+            const response = await fetch(`http://localhost:3000/supplier_product/${this.supplierIDForProducts}`);
+            if (!response.ok) throw new Error('No products found for this supplier');
+            this.productsBySupplier = await response.json();
+            this.errorProductsBySupplier = ''; // Réinitialiser le message d'erreur si produits trouvés
+          } catch (err) {
+            console.error('Error fetching products by supplier:', err);
+            this.productsBySupplier = [];
+            this.errorProductsBySupplier = 'No products found for this supplier'; // Message d'erreur si pas de produits
+          }
+        },
+        async fetchCustomerOrders() {
+          try {
+            const response = await fetch(`http://localhost:3000/customer_order/${this.customerID}`);
+            if (!response.ok) throw new Error('No orders found');
+            this.customerOrders = await response.json();
+            this.errorCustomerOrders = ''; // Réinitialiser le message d'erreur si commandes trouvées
+          } catch (err) {
+            console.error('Error fetching orders:', err);
+            this.customerOrders = [];
+            this.errorCustomerOrders = 'No orders found for this customer'; // Message d'erreur si pas de commandes
+          }
+        },
+        async viewOrder(orderID) {
+          try {
+            const response = await fetch(`http://localhost:3000/order/${orderID}`);
+            if (!response.ok) throw new Error('Order details not found');
+            const orderDetails = await response.json();
+            this.selectedOrder = orderDetails[0]; // Prendre la première commande correspondante
+          } catch (err) {
+            console.error('Error fetching order details:', err);
+            this.selectedOrder = null;
+          }
         }
-
-        const data = await response.json();
-        
-        console.log('Product data:', data);
-
-        // Afficher les données sur la page HTML
-        const productInfo = `
-          <p>Product ID: ${data.productID}</p>
-          <p>Name: ${data.productName}</p>
-          <p>Price: $${data.unitPrice}</p>
-        `;
-       
-	const dproduct = document.getElementById('product') ; 
-	dproduct.innerHTML=productInfo ; 
-      
-	} catch (error) {
-        	console.error('Error fetching product:', error);
       }
     });
   </script>
 
-	<div id="product"></div>
-
 </body>
 </html>
-

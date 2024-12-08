@@ -297,6 +297,88 @@ app.get('/supplier_product/:supplierID', async (req, res) => {
 });
 
 
+// Route pour récupérer tous les clients
+app.get('/customers', async (req, res) => {
+    let client;
+    try {
+        client = new MongoClient(mongoUrl);
+        await client.connect();
+        console.log('Connected to MongoDB');
+
+        const db = client.db(dbName);
+        const customers = await db.collection('customers').find({}).toArray();
+
+        if (customers.length > 0) {
+            res.json(customers);
+        } else {
+            res.status(404).json({ error: 'No customers found' });
+        }
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    } finally {
+        if (client) {
+            await client.close();
+        }
+    }
+});
+
+
+// Route pour récupérer tous les produits
+app.get('/products', async (req, res) => {
+    let client;
+    try {
+        client = new MongoClient(mongoUrl);
+        await client.connect();
+        console.log('Connected to MongoDB');
+
+        const db = client.db(dbName);
+        const products = await db.collection('products').find({}).toArray();
+
+        if (products.length > 0) {
+            res.json(products);
+        } else {
+            res.status(404).json({ error: 'No products found' });
+        }
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    } finally {
+        if (client) {
+            await client.close();
+        }
+    }
+});
+
+
+
+// Route pour récupérer toutes les commandes
+app.get('/orders', async (req, res) => {
+    let client;
+    try {
+        client = new MongoClient(mongoUrl);
+        await client.connect();
+        console.log('Connected to MongoDB');
+
+        const db = client.db(dbName);
+        const orders = await db.collection('orders').find({}).toArray();
+
+        if (orders.length > 0) {
+            res.json(orders);
+        } else {
+            res.status(404).json({ error: 'No orders found' });
+        }
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    } finally {
+        if (client) {
+            await client.close();
+        }
+    }
+});
+
+
 
 // Lancement du serveur
 app.listen(port, () => {

@@ -1,28 +1,334 @@
-<!doctype html>
+<!DOCTYPE html>
+<html lang="fr">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord - API MongoDB</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+header {
+    background-color: #2f3b52;
+    color: white;
+    width: 100%;
+    padding: 30px;
+    text-align: center;
+    font-size: 2rem;
+}
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 20px;
+    max-width: 65%;
+    width: 100%;
+    margin-top: 20px;
+    box-sizing: border-box;
+}
+
+.chart, .table-container {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 20px;
+    padding: 20px;
+    flex: 1;
+    min-width: 30%;
+    max-width: 100%; 
+    height: auto;
+    box-sizing: border-box;
+    overflow: hidden; 
+}
+
+h2 {
+    text-align: center;
+    color: #333;
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+}
+
+.chart-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.chart {
+    flex: 1;
+    max-width: 1000px; 
+    margin: 10px;
+    padding: 15px;
+    border-radius: 12px;
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    height: 350px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.table-container {
+    width: 100%;
+    max-width: 600px; 
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+/* Form Style */
+.search-container {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 30px;
+    width: 100%;
+    max-width: 1200px;
+    text-align: center;
+}
+
+.search-container input {
+    padding: 10px;
+    font-size: 1rem;
+    margin-right: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.search-container button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.search-container button:hover {
+    background-color: #45a049;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    header {
+        font-size: 1.5rem;
+    }
+
+    .container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .chart, .table-container {
+        margin-top: 10px;
+        max-width: 100%;
+    }
+}
+
+    </style>
     <script src="https://cdn.anychart.com/releases/8.13.0/js/anychart-base.min.js" type="text/javascript"></script>
     <script>
-      anychart.onDocumentLoad(function () {
-        // create an instance of a pie chart
-        var chart = anychart.pie();
-        // set the data
-        chart.data([
-          ["Chocolate", 5],
-          ["Rhubarb compote", 2],
-          ["Crêpe Suzette", 2],
-          ["American blueberry", 2],
-          ["Buttermilk", 1]
-        ]);
-        // set chart title
-        chart.title("Top 5 pancake fillings");
-        // set the container element 
-        chart.container("container");
-        // initiate chart display
-        chart.draw();
-      });
+        anychart.onDocumentLoad(function () {
+
+            fetch('http://localhost:3000/customers') 
+                .then(response => response.json())
+                .then(data => {
+                    const countries = data.map(customer => customer.Country);
+                    const countryCount = countries.reduce((acc, country) => {
+                        acc[country] = (acc[country] || 0) + 1;
+                        return acc;
+                    }, {});
+                    const countryData = Object.entries(countryCount).map(([country, count]) => [country, count]);
+
+                    var customerChart = anychart.pie(countryData);
+                    customerChart.title("Répartition des clients par pays");
+                    customerChart.container("customer-chart");
+                    customerChart.draw();
+                });
+
+
+
+            fetch('http://localhost:3000/products')
+                .then(response => response.json())
+                .then(data => {
+                    const productData = data.map(product => [product.productName, product.unitPrice]);
+
+                    var productChart = anychart.column();
+                    productChart.data(productData);
+                    productChart.title("Produits les plus populaires");
+                    productChart.container("product-chart");
+                    productChart.draw();
+                });
+        });
     </script>
 </head>
 <body>
-    <div id="container" style="width: 500px; height: 400px;"></div>
+
+<header>
+    Tableau de Bord - API MongoDB
+</header>
+
+<!-- Section pour rechercher et afficher des données -->
+<div class="search-container">
+    <h2>Rechercher des données</h2>
+
+
+    <input id="productID" type="text" placeholder="Enter Product ID">
+    <button onclick="fetchProduct()">Fetch Product</button>
+
+
+    <input id="supplierID" type="text" placeholder="Enter Supplier ID">
+    <button onclick="fetchSupplier()">Fetch Supplier</button>
+
+
+    <input id="supplierIDForProducts" type="text" placeholder="Enter Supplier ID">
+    <button onclick="fetchProductsBySupplier()">Fetch Products</button>
+
+
+    <input id="customerID" type="text" placeholder="Enter Customer ID">
+    <button onclick="fetchCustomerOrders()">Fetch Orders</button>
+</div>
+
+<!-- Section pour les graphiques -->
+<div class="container chart-container">
+    <div class="chart" id="customer-chart">
+        <h2>Répartition des Clients</h2>
+    </div>
+
+    <div class="chart" id="product-chart">
+        <h2>Produits Populaires</h2>
+    </div>
+</div>
+
+<!-- Section pour les tableaux -->
+<div class="container">
+    <div class="table-container">
+        <h2>Tableau des Clients</h2>
+        <table id="customers-table">
+            <thead>
+                <tr>
+                    <th>CustomerID</th>
+                    <th>CompanyName</th>
+                    <th>ContactName</th>
+                    <th>City</th>
+                    <th>Country</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="table-container">
+        <h2>Tableau des Produits</h2>
+        <table id="products-table">
+            <thead>
+                <tr>
+                    <th>ProductID</th>
+                    <th>ProductName</th>
+                    <th>SupplierID</th>
+                    <th>CategoryID</th>
+                    <th>UnitPrice</th>
+                </tr>
+            </thead>
+            <tbody> </tbody>
+        </table>
+    </div>
+</div>
+
+
+<script>
+
+    fetch('http://localhost:3000/customers') 
+        .then(response => response.json())
+        .then(data => {
+            const customersTable = document.getElementById('customers-table').getElementsByTagName('tbody')[0];
+            data.forEach(customer => {
+                let row = customersTable.insertRow();
+                row.insertCell(0).innerText = customer.CustomerID;
+                row.insertCell(1).innerText = customer.CompanyName;
+                row.insertCell(2).innerText = customer.ContactName;
+                row.insertCell(3).innerText = customer.City;
+                row.insertCell(4).innerText = customer.Country;
+            });
+        })
+        .catch(error => console.error('Erreur lors de la récupération des clients:', error));
+
+
+    fetch('http://localhost:3000/products')
+        .then(response => response.json())
+        .then(data => {
+            const productsTable = document.getElementById('products-table').getElementsByTagName('tbody')[0];
+            data.forEach(product => {
+                let row = productsTable.insertRow();
+                row.insertCell(0).innerText = product.productID;
+                row.insertCell(1).innerText = product.productName;
+                row.insertCell(2).innerText = product.supplierID;
+                row.insertCell(3).innerText = product.categoryID;
+                row.insertCell(4).innerText = product.unitPrice;
+            });
+        })
+        .catch(error => console.error('Erreur lors de la récupération des produits:', error));
+
+    function fetchProduct() {
+        const productID = document.getElementById('productID').value;
+        fetch(`http://localhost:3000/product/${productID}`)
+            .then(response => response.json())
+            .then(data => alert('Product fetched: ' + JSON.stringify(data)))
+            .catch(error => alert('Product not found.'));
+    }
+
+    function fetchSupplier() {
+        const supplierID = document.getElementById('supplierID').value;
+        fetch(`http://localhost:3000/supplier/${supplierID}`)
+            .then(response => response.json())
+            .then(data => alert('Supplier fetched: ' + JSON.stringify(data)))
+            .catch(error => alert('Supplier not found.'));
+    }
+
+    function fetchProductsBySupplier() {
+        const supplierID = document.getElementById('supplierIDForProducts').value;
+        fetch(`http://localhost:3000/supplier_product/${supplierID}`)
+            .then(response => response.json())
+            .then(data => alert('Products fetched: ' + JSON.stringify(data)))
+            .catch(error => alert('No products found.'));
+    }
+
+    function fetchCustomerOrders() {
+        const customerID = document.getElementById('customerID').value;
+        fetch(`http://localhost:3000/customer_order/${customerID}`)
+            .then(response => response.json())
+            .then(data => alert('Orders fetched: ' + JSON.stringify(data)))
+            .catch(error => alert('No orders found.'));
+    }
+</script>
+
 </body>
 </html>
